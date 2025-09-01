@@ -46,6 +46,7 @@ class Favorite {
 
         if (!exists) {
             favorites.push({ language: this.formatText(language), word: this.formatText(word) });
+            favorites.sort((a, b) => a.word.localeCompare(b.word));
             LocalStorage.setItem(Favorite.key, JSON.stringify(favorites));
         }
     }

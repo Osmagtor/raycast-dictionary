@@ -92,9 +92,9 @@ class Dictionary {
 
         md += `# ${entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1)}\n`;
 
-        md += `Source: [${entry.source.url}](${entry.source.url})\n\n`;
+        this.urlWord = entry.source.url.replaceAll(' ', '%20');
 
-        this.urlWord = entry.source.url;
+        md += `Source: [${this.urlWord}](${this.urlWord})\n\n`;
 
         // Parts of Speech
 
