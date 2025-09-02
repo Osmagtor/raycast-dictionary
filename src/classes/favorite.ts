@@ -63,8 +63,17 @@ class Favorite {
      */
     public static async removeEntry(language: string, word: string): Promise<void> {
         const favorites: FavoriteEntry[] = await this.getEntries();
-        const updatedFavorites = favorites.filter((fav: FavoriteEntry) => fav.language !== language || fav.word !== word);
+        const updatedFavorites = favorites.filter((fav: FavoriteEntry) => fav.language.toLowerCase() !== language.toLowerCase() || fav.word.toLowerCase() !== word.toLowerCase());
         LocalStorage.setItem(Favorite.key, JSON.stringify(updatedFavorites));
+    }
+
+    /**
+     * Removes all favorite items from local storage.
+     *
+     * @returns {Promise<void>} A promise that resolves when all favorites have been removed.
+     */
+    public static async removeAll(): Promise<void> {
+        await LocalStorage.removeItem(Favorite.key);
     }
 
     /**

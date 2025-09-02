@@ -54,9 +54,8 @@ class Dictionary {
     private language: string;
     private word: string;
 
-    public get getURL(): string {
-        return this.urlWord;
-    }
+    public get getURL(): string { return this.urlWord; }
+    public get getLanguage(): string { return this.language; }
 
     constructor(language: string, word: string) {
         this.language = language;
@@ -78,6 +77,9 @@ class Dictionary {
 
             if (!entry.entries.length) return {};
 
+            // Updating the word and language to ensure proper formatting
+
+            this.language = entry.entries[0].language.name.slice(0, 1).toUpperCase() + entry.entries[0].language.name.slice(1).toLowerCase();
             this.word = entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1).toLowerCase();
             this.urlWord = entry.source.url.replaceAll(" ", "%20");
 

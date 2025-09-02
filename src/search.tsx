@@ -29,6 +29,7 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
     const [exist, setExist] = useState<boolean>(false);
     const [searchText, setSearchText] = useState("");
     const [entryURL, setEntryURL] = useState<string>("");
+    const [languageFull, setLanguageFull] = useState<string>(language);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -36,6 +37,7 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
         d.fetchEntry().then((ge: GroupedEntry) => {
             setGroupedEntries(ge);
             setEntryURL(d.getURL);
+            setLanguageFull(d.getLanguage);
             setLoading(false);
         });
     }, [language, word]);
@@ -92,19 +94,20 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
                                                 icon={exist ? Icon.StarDisabled : Icon.Star}
                                                 onAction={async (): Promise<void> => {
                                                     if (!exist) {
-                                                        Favorite.addEntry(language, word, sense.markdown || "", entryURL || "");
+
+                                                        Favorite.addEntry(languageFull, word, sense.markdown || "", entryURL || "");
 
                                                         await showToast({
                                                             style: Toast.Style.Success,
                                                             title: "Added to Favorites",
-                                                            message: `"${word}" (${language.toUpperCase()}) has been added to your favorites`,
+                                                            message: `"${word}" (${languageFull}) has been added to your favorites`,
                                                         });
 
                                                         setExist(true);
                                                     } else {
                                                         const options: Alert.Options = {
                                                             title: "Remove from Favorites",
-                                                            message: `"${word.slice(0, 1).toUpperCase()}${word.slice(1)}" (${language.toUpperCase()}) will be removed from your favorites`,
+                                                            message: `"${word.slice(0, 1).toUpperCase()}${word.slice(1)}" (${languageFull}) will be removed from your favorites`,
                                                             primaryAction: {
                                                                 title: "Delete",
                                                                 style: Alert.ActionStyle.Destructive,
@@ -112,7 +115,7 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
                                                                     await showToast({
                                                                         style: Toast.Style.Success,
                                                                         title: "Removed from Favorites",
-                                                                        message: `"${word.slice(0, 1).toUpperCase()}${word.slice(1)}" (${language.toUpperCase()}) has been removed from your favorites`,
+                                                                        message: `"${word.slice(0, 1).toUpperCase()}${word.slice(1)}" (${languageFull}) has been removed from your favorites`,
                                                                     });
                                                                 },
                                                             },

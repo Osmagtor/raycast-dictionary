@@ -6,6 +6,7 @@ export default function Command(): JSX.Element {
     const [favorites, setFavorites] = useState<FavoriteEntry[]>([]);
     const [searchText, setSearchText] = useState("");
     const [loading, setLoading] = useState(true);
+    const [selectedLanguage, setSelectedLanguage] = useState<string>("All");
 
     useEffect(() => {
         const fetchFavorites = async () => {
@@ -17,6 +18,8 @@ export default function Command(): JSX.Element {
         fetchFavorites();
     }, []);
 
+    const langs: string[] = Array.from(new Set(favorites.map((fav) => fav.language)));
+
     return (
         <List
             isLoading={loading}
@@ -25,6 +28,19 @@ export default function Command(): JSX.Element {
             searchBarPlaceholder="Filter favorites by word..."
             filtering={true}
             isShowingDetail={true}
+            searchBarAccessory={
+                <List.Dropdown
+                    tooltip="Filter by language"
+                    storeValue={true}
+                    onChange={setSelectedLanguage}
+                    defaultValue="All"
+                >
+                    <List.Dropdown.Item title="All" value="All" />
+                    {langs.map((lang: string) => (
+                        <List.Dropdown.Item key={lang} title={lang.slice(0, 1).toUpperCase() + lang.slice(1).toLowerCase()} value={lang} />
+                    ))}
+                </List.Dropdown>
+            }
         >
             {!favorites.length ? (
                 <List.EmptyView title="No favorites found" />
@@ -42,59 +58,90 @@ export default function Command(): JSX.Element {
                         },
                         {},
                     ),
-                ).map(([lang, wordDefinition]: [string, { word: string; markdown: string; url: string }[]]) => (
-                    <List.Section key={lang} title={lang.toUpperCase()}>
-                        {wordDefinition
-                            .filter((entry) => entry.word.toLowerCase().includes(searchText.toLowerCase()))
-                            .map((entry) => (
-                                <List.Item
-                                    key={entry.word}
-                                    title={entry.word}
-                                    detail={<List.Item.Detail markdown={entry.markdown || "No details available."} />}
-                                    actions={
-                                        <ActionPanel>
-                                            <Action
-                                                title="Open in Browser"
-                                                icon={Icon.Globe}
-                                                onAction={(): void => {
-                                                    const url: string = entry.url;
-                                                    if (url) open(url);
-                                                }}
-                                            />
-                                            <Action
-                                                title="Remove from Favorites"
-                                                icon={Icon.Trash}
-                                                onAction={async (): Promise<void> => {
-                                                    const options: Alert.Options = {
-                                                        title: "Remove from Favorites",
-                                                        message: `"${entry.word}" (${lang.toUpperCase()}) will be removed from your favorites`,
-                                                        primaryAction: {
-                                                            title: "Delete",
-                                                            style: Alert.ActionStyle.Destructive,
-                                                            onAction: async (): Promise<void> => {
-                                                                await Favorite.removeEntry(lang, entry.word);
+                )
+                    .filter(([lang]) => selectedLanguage === "All" || lang === selectedLanguage)
+                    .sort(([langA], [langB]) => langA.localeCompare(langB))
+                    .map(([lang, wordDefinition]: [string, { word: string; markdown: string; url: string }[]]) => (
+                        <List.Section key={lang} title={lang.slice(0, 1).toUpperCase() + lang.slice(1).toLowerCase()}>
+                            {wordDefinition
+                                .filter((entry) => entry.word.toLowerCase().includes(searchText.toLowerCase()))
+                                .map((entry) => (
+                                    <List.Item
+                                        key={entry.word}
+                                        title={entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1).toLowerCase()}
+                                        detail={<List.Item.Detail markdown={entry.markdown || "No details available."} />}
+                                        actions={
+                                            <ActionPanel>
+                                                <Action
+                                                    title="Open in Browser"
+                                                    icon={Icon.Globe}
+                                                    onAction={(): void => {
+                                                        const url: string = entry.url;
+                                                        if (url) open(url);
+                                                    }}
+                                                />
+                                                <Action
+                                                    title="Remove from Favorites"
+                                                    icon={Icon.StarDisabled}
+                                                    onAction={async (): Promise<void> => {
+                                                        const options: Alert.Options = {
+                                                            title: "Remove from Favorites",
+                                                            message: `"${entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1).toLowerCase()}" (${lang.slice(0, 1).toUpperCase() + lang.slice(1).toLowerCase()}) will be removed from your favorites`,
+                                                            primaryAction: {
+                                                                title: "Delete",
+                                                                style: Alert.ActionStyle.Destructive,
+                                                                onAction: async (): Promise<void> => {
+                                                                    await Favorite.removeEntry(lang, entry.word);
 
-                                                                const favs: FavoriteEntry[] = await Favorite.getEntries();
-                                                                setFavorites(favs);
+                                                                    const favs: FavoriteEntry[] = await Favorite.getEntries();
+                                                                    setFavorites(favs);
 
-                                                                await showToast({
-                                                                    style: Toast.Style.Success,
-                                                                    title: "Removed from Favorites",
-                                                                    message: `"${entry.word}" (${lang.toUpperCase()}) has been removed from your favorites`,
-                                                                });
+                                                                    await showToast({
+                                                                        style: Toast.Style.Success,
+                                                                        title: "Removed from Favorites",
+                                                                        message: `"${entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1).toLowerCase()}" (${lang.slice(0, 1).toUpperCase() + lang.slice(1).toLowerCase()}) has been removed from your favorites`,
+                                                                    });
+                                                                },
                                                             },
-                                                        },
-                                                    };
+                                                        };
 
-                                                    await confirmAlert(options);
-                                                }}
-                                            />
-                                        </ActionPanel>
-                                    }
-                                />
-                            ))}
-                    </List.Section>
-                ))
+                                                        await confirmAlert(options);
+                                                    }}
+                                                />
+                                                <Action
+                                                    title="Remove All Favorites"
+                                                    icon={Icon.Trash}
+                                                    onAction={async (): Promise<void> => {
+                                                        const options: Alert.Options = {
+                                                            title: "Remove All Favorites",
+                                                            message: `All favorites will be removed`,
+                                                            primaryAction: {
+                                                                title: "Delete",
+                                                                style: Alert.ActionStyle.Destructive,
+                                                                onAction: async (): Promise<void> => {
+                                                                    await Favorite.removeAll();
+
+                                                                    const favs: FavoriteEntry[] = await Favorite.getEntries();
+                                                                    setFavorites(favs);
+
+                                                                    await showToast({
+                                                                        style: Toast.Style.Success,
+                                                                        title: "Removed from Favorites",
+                                                                        message: `All favorites have been removed`,
+                                                                    });
+                                                                },
+                                                            },
+                                                        };
+
+                                                        await confirmAlert(options);
+                                                    }}
+                                                />
+                                            </ActionPanel>
+                                        }
+                                    />
+                                ))}
+                        </List.Section>
+                    ))
             )}
         </List>
     );
