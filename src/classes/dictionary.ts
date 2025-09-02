@@ -48,18 +48,22 @@ interface GroupedEntry {
 }
 
 class Dictionary {
+    
     private url: string = "https://freedictionaryapi.com/api/v1/entries";
     private urlWord: string = "";
 
-    private language: string;
-    private word: string;
+    private language: string = '';
+    private word: string = '';
+
+    private languageCode: string = '';
+    private wordQuery: string = '';
 
     public get getURL(): string { return this.urlWord; }
     public get getLanguage(): string { return this.language; }
 
-    constructor(language: string, word: string) {
-        this.language = language;
-        this.word = word;
+    constructor(languageCode: string, wordQuery: string) {
+        this.languageCode = languageCode;
+        this.wordQuery = wordQuery;
     }
 
     /**
@@ -70,7 +74,8 @@ class Dictionary {
      * @returns {Promise<GroupedEntry>} A promise that resolves to the grouped entry data or an empty object.
      */
     public async fetchEntry(): Promise<GroupedEntry> {
-        const res: Response = await fetch(`${this.url}/${this.language}/${this.word}`);
+
+        const res: Response = await fetch(`${this.url}/${this.languageCode}/${this.wordQuery}`);
 
         if (res.ok) {
             const entry: DictionaryResponse = (await res.json()) as DictionaryResponse;
@@ -122,7 +127,7 @@ class Dictionary {
 
                 // Parts of Speech
 
-                title = `# ${this.word} (_${e.partOfSpeech}_)\n<sub>Source: [${this.urlWord}](${this.urlWord})</sub>\n\n`;
+                title = `# ${this.word} (_${e.partOfSpeech}_)\n### Source: [${this.urlWord}](${this.urlWord})\n### Definition:\n`;
 
                 // Pronunciations
 
@@ -221,7 +226,7 @@ class Dictionary {
 
         // Languages with complex conjugation systems will have their forms grouped by mood, tense, number, and person in tables
 
-        if (complexConjugationsLanguages.includes(this.language)) {
+        if (complexConjugationsLanguages.includes(this.languageCode)) {
             const nonfiniteMoods: string[] = ["gerund", "participle", "infinitive"];
             const moods: string[] = ["indicative", "subjunctive-i", "subjunctive-ii", "subjunctive", "imperative"];
             const tenses: string[] = [
@@ -313,9 +318,10 @@ class Dictionary {
 
                         rows.length = 0;
                     } else {
+
                         if (!tense && mood !== "imperative") return;
 
-                        md += `##### Tense: ${tense || mood === "imperative" ? "present" : ""}\n`;
+                        md += `##### Tense: ${mood === "imperative" ? "present" : tense}\n`;
                         md += `| Person & Number | Form |\n|---|---|\n`;
 
                         Object.entries(numbersObj).forEach(([number, personsObj]) => {
@@ -375,14 +381,16 @@ class Dictionary {
                 if (s.synonyms && s.synonyms.length) subMd += `${prefix}    - **Synonyms:** ${s.synonyms.join(", ")}\n`;
                 if (s.antonyms && s.antonyms.length) subMd += `${prefix}    - **Antonyms:** ${s.antonyms.join(", ")}\n`;
                 if (s.examples && s.examples.length) {
-                    s.examples.forEach((ex: string, i: number) => {
-                        subMd += `${prefix}    - **Example ${i + 1}:** ${ex}\n`;
+                    if (s.examples.length > 1) s.examples.forEach((ex: string, i: number) => {
+                        subMd += `${prefix}    - **Example ${i + 1}:** "${ex}"\n`;
                     });
+                    else subMd += `${prefix}    - **Example:** "${s.examples[0]}"\n`;
                 }
                 if (s.quotes && s.quotes.length) {
-                    s.quotes.forEach((q: { text: string; reference: string }, i: number) => {
-                        subMd += `${prefix}    - **Quote ${i + 1}:** ${q.text} - _${q.reference}_\n`;
+                    if (s.quotes.length > 1) s.quotes.forEach((q: { text: string; reference: string }, i: number) => {
+                        subMd += `${prefix}    - **Quote ${i + 1}:**  "${q.text}" - _${q.reference}_\n`;
                     });
+                    else subMd += `${prefix}    - **Quote:** "${s.quotes[0].text}" - _${s.quotes[0].reference}_\n`;
                 }
                 if (s.subsenses && s.subsenses.length) {
                     subMd += renderSubsenses(s.subsenses, indent + 1);
@@ -398,14 +406,16 @@ class Dictionary {
         md += `${sense.definition}\n`;
 
         if (sense.examples && sense.examples.length) {
-            sense.examples.forEach((ex: string, i: number) => {
-                md += `- **Example ${i + 1}:** ${ex}\n`;
+            if (sense.examples.length > 1) sense.examples.forEach((ex: string, i: number) => {
+                md += `- **Example ${i + 1}:** "${ex}"\n`;
             });
+            else md += `- **Example:** "${sense.examples[0]}"\n`;
         }
         if (sense.quotes && sense.quotes.length) {
-            sense.quotes.forEach((q: { text: string; reference: string }, i: number) => {
-                md += `- **Quote ${i + 1}:** ${q.text} - _${q.reference}_\n`;
+            if (sense.quotes.length > 1) sense.quotes.forEach((q: { text: string; reference: string }, i: number) => {
+                md += `- **Quote ${i + 1}:** "${q.text}" - _${q.reference}_\n`;
             });
+            else md += `- **Quote:** "${sense.quotes[0].text}" - _${sense.quotes[0].reference}_\n`;
         }
         if (sense.synonyms && sense.synonyms.length) md += `- **Synonyms:** ${sense.synonyms.join(", ")}\n`;
         if (sense.antonyms && sense.antonyms.length) md += `- **Antonyms:** ${sense.antonyms.join(", ")}\n`;

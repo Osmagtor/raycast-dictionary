@@ -19,7 +19,7 @@
     },
     {
       "name": "search",
-      "title": "Word Lookup",
+      "title": "Search Word",
       "description": "Looks up a word",
       "mode": "view",
       "arguments": [
