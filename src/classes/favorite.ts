@@ -8,7 +8,6 @@ interface FavoriteEntry {
 }
 
 class Favorite {
-
     private static key: string = "favorites";
 
     /**
@@ -44,9 +43,10 @@ class Favorite {
      * If not, formats the language and word, adds them to the favorites, and updates LocalStorage.
      */
     public static async addEntry(language: string, word: string, markdown: string, url: string): Promise<void> {
-
         const favorites: FavoriteEntry[] = await this.getEntries();
-        const exists: boolean = favorites.find((fav: FavoriteEntry) => fav.language === language && fav.word === word) ? true : false;
+        const exists: boolean = favorites.find((fav: FavoriteEntry) => fav.language === language && fav.word === word)
+            ? true
+            : false;
 
         if (!exists) {
             favorites.push({ language: this.formatText(language), word: this.formatText(word), markdown, url });

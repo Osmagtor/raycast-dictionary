@@ -17,7 +17,7 @@ interface Entry {
     language: {
         code: string;
         name: string;
-    },
+    };
     partOfSpeech: string;
     pronunciations: {
         type: string;
@@ -39,8 +39,8 @@ interface DictionaryResponse {
         license: {
             name: string;
             url: string;
-        }
-    }
+        };
+    };
 }
 
 interface GroupedEntry {
@@ -48,29 +48,38 @@ interface GroupedEntry {
 }
 
 class Dictionary {
-
     private url: string = "https://freedictionaryapi.com/api/v1/entries";
-    private urlWord: string = '';
+    private urlWord: string = "";
 
     private language: string;
     private word: string;
 
-    public get getURL(): string { return this.urlWord; }
+    public get getURL(): string {
+        return this.urlWord;
+    }
 
     constructor(language: string, word: string) {
         this.language = language;
         this.word = word;
     }
 
+    /**
+     * Fetches a dictionary entry for the specified word and language from the configured URL.
+     * If the fetch is successful, it processes and formats the entry, updating internal properties.
+     * Returns the grouped entry data or an empty object if the fetch fails.
+     *
+     * @returns {Promise<GroupedEntry>} A promise that resolves to the grouped entry data or an empty object.
+     */
     public async fetchEntry(): Promise<GroupedEntry> {
-
         const res: Response = await fetch(`${this.url}/${this.language}/${this.word}`);
 
         if (res.ok) {
-            const entry: DictionaryResponse = await res.json() as DictionaryResponse;
+            const entry: DictionaryResponse = (await res.json()) as DictionaryResponse;
+
+            if (!entry.entries.length) return {};
 
             this.word = entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1).toLowerCase();
-            this.urlWord = entry.source.url.replaceAll(' ', '%20');
+            this.urlWord = entry.source.url.replaceAll(" ", "%20");
 
             return this.groupEntries(entry);
         } else {
@@ -78,23 +87,36 @@ class Dictionary {
         }
     }
 
+    /**
+     * Groups dictionary entries by their part of speech and enriches each sense with markdown content.
+     *
+     * Iterates through the provided dictionary response, organizing entries into a structure keyed by part of speech.
+     * For each entry, it initializes the group if necessary, collects pronunciations and forms, and generates markdown
+     * for each sense, including title, pronunciations, forms, and rendered sense details.
+     *
+     * @param {DictionaryResponse} entryThe dictionary response containing entries to be grouped.
+     * @returns {GroupedEntry} An object mapping each part of speech to its grouped entries, including enriched senses.
+     */
     private groupEntries(entry: DictionaryResponse): GroupedEntry {
-
         const groupedEntries: GroupedEntry = {};
 
-        let title: string = '';
-        let pronunciations: string = '';
-        let forms: string = '';
+        let title: string = "";
+        let pronunciations: string = "";
+        let forms: string = "";
 
         // Group senses by parts of speech
 
         entry.entries.forEach((e: Entry) => {
-
             if (!groupedEntries[e.partOfSpeech]) {
-
                 // Initialize the part of speech entry
 
-                groupedEntries[e.partOfSpeech] = { language: e.language, partOfSpeech: e.partOfSpeech, pronunciations: [], forms: [], senses: [] };
+                groupedEntries[e.partOfSpeech] = {
+                    language: e.language,
+                    partOfSpeech: e.partOfSpeech,
+                    pronunciations: [],
+                    forms: [],
+                    senses: [],
+                };
 
                 // Parts of Speech
 
@@ -111,31 +133,32 @@ class Dictionary {
             e.senses.forEach((sense: Sense) => {
                 const senseWithMarkdown = {
                     ...sense,
-                    markdown:
-                        (
-                            title +
-                            this.renderSenses(sense) +
-                            pronunciations +
-                            forms
-                        ).replaceAll('..', '.')
+                    markdown: (title + this.renderSenses(sense) + pronunciations + forms).replaceAll("..", "."),
                 };
                 groupedEntries[e.partOfSpeech].senses.push(senseWithMarkdown);
             });
         });
 
-        return groupedEntries
+        return groupedEntries;
     }
 
+    /**
+     * Renders the pronunciations of a dictionary entry as a Markdown table.
+     * Groups pronunciations by region (tags) and phonetic system type.
+     *
+     * @param {Entry} entry The dictionary entry containing pronunciation data.
+     * @returns {string} Markdown-formatted string representing the pronunciations table,
+     * or an empty string if no pronunciations are available.
+     */
     private renderPronunciations(entry: Entry): string {
-
         if (!entry.pronunciations || !entry.pronunciations.length) return "";
 
         let md = `### Pronunciations\n`;
 
         // Group pronunciations by region (tags) and type
 
-        const grouped: Record<string, { type: string, text: string[] }> = {};
-        entry.pronunciations.forEach(p => {
+        const grouped: Record<string, { type: string; text: string[] }> = {};
+        entry.pronunciations.forEach((p) => {
             if (p.tags.length) {
                 p.tags.forEach((tag: string) => {
                     if (!grouped[tag]) grouped[tag] = { type: p.type, text: [] };
@@ -162,37 +185,73 @@ class Dictionary {
         return md;
     }
 
+    /**
+     * Renders the forms of a dictionary entry as a Markdown string.
+     * For languages with complex conjugation systems, forms are grouped and displayed in tables by mood, tense, number, and person.
+     * For other languages, forms are listed as bullet points.
+     *
+     * @param {Entry} entry The dictionary entry containing forms to render.
+     * @returns {string} A Markdown-formatted string representing the forms of the entry.
+     */
     private renderForms(entry: Entry): string {
-
         if (!entry.forms || !entry.forms.length) return "";
 
         let md = `### Forms\n`;
 
-        const invalidTags: string[] = ['inflection-template', 'table-tags', 'class'];
-        const complexConjugationsLanguages: string[] = ['ca', 'cs', 'fr', 'de', 'el', 'hu', 'it', 'la', 'pt', 'ro', 'ru', 'sh', 'es', 'nl'];
+        const invalidTags: string[] = ["inflection-template", "table-tags", "class"];
+        const complexConjugationsLanguages: string[] = [
+            "ca",
+            "cs",
+            "fr",
+            "de",
+            "el",
+            "hu",
+            "it",
+            "la",
+            "pt",
+            "ro",
+            "ru",
+            "sh",
+            "es",
+            "nl",
+        ];
         const rows: string[] = [];
 
         // Languages with complex conjugation systems will have their forms grouped by mood, tense, number, and person in tables
 
         if (complexConjugationsLanguages.includes(this.language)) {
+            const nonfiniteMoods: string[] = ["gerund", "participle", "infinitive"];
+            const moods: string[] = ["indicative", "subjunctive-i", "subjunctive-ii", "subjunctive", "imperative"];
+            const tenses: string[] = [
+                "future-i",
+                "future-ii",
+                "present",
+                "imperfect",
+                "preterite",
+                "future",
+                "conditional",
+                "perfect",
+                "pluperfect",
+                "past perfect",
+                "future perfect",
+                "conditional perfect",
+            ];
+            const numbers: string[] = ["singular", "plural"];
+            const persons: string[] = ["first-person", "second-person", "third-person"];
 
-            const nonfiniteMoods: string[] = ['gerund', 'participle', 'infinitive'];
-            const moods: string[] = ['indicative', 'subjunctive-i', 'subjunctive-ii', 'subjunctive', 'imperative'];
-            const tenses: string[] = ['future-i', 'future-ii', 'present', 'imperfect', 'preterite', 'future', 'conditional', 'perfect', 'pluperfect', 'past perfect', 'future perfect', 'conditional perfect'];
-            const numbers: string[] = ['singular', 'plural'];
-            const persons: string[] = ['first-person', 'second-person', 'third-person'];
+            const grouped: Record<
+                string,
+                Record<string, Record<string, Record<string, { word: string; tags: string[] }[]>>>
+            > = {};
 
-            const grouped: Record<string, Record<string, Record<string, Record<string, { word: string; tags: string[] }[]>>>> = {};
-
-            entry.forms.forEach(f => {
-
+            entry.forms.forEach((f) => {
                 // If the form has no tags, skip it
 
                 if (!f.tags.length) return;
 
                 // If the tags contain any invalid tags, skip this form
 
-                if (f.tags.some(tag => invalidTags.includes(tag))) return;
+                if (f.tags.some((tag) => invalidTags.includes(tag))) return;
 
                 // If the word contains any tense, number, or person keywords, skip this form
 
@@ -210,10 +269,12 @@ class Dictionary {
 
                 // Group the form by mood, tense, number, and person
 
-                const mood: string = moods.find(m => f.tags.includes(m)) || (nonfiniteMoods.find(nm => f.tags.includes(nm)) ? "non-finite" : "indicative");
-                const tense: string = tenses.find(t => f.tags.includes(t)) || "";
-                const number: string = numbers.find(n => f.tags.includes(n)) || "";
-                const person: string = persons.find(p => f.tags.includes(p)) || "";
+                const mood: string =
+                    moods.find((m) => f.tags.includes(m)) ||
+                    (nonfiniteMoods.find((nm) => f.tags.includes(nm)) ? "non-finite" : "indicative");
+                const tense: string = tenses.find((t) => f.tags.includes(t)) || "";
+                const number: string = numbers.find((n) => f.tags.includes(n)) || "";
+                const person: string = persons.find((p) => f.tags.includes(p)) || "";
 
                 if (!grouped[mood]) grouped[mood] = {};
                 if (!grouped[mood][tense]) grouped[mood][tense] = {};
@@ -224,24 +285,20 @@ class Dictionary {
             });
 
             Object.entries(grouped).forEach(([mood, tensesObj]) => {
-
-                const nonFinite: boolean = mood === 'non-finite';
+                const nonFinite: boolean = mood === "non-finite";
 
                 md += `#### ${nonFinite ? "Non-finite forms" : `Mood: ${mood}`}\n`;
                 if (nonFinite) md += `| Name | Form |\n|---|---|\n`;
 
                 Object.entries(tensesObj).forEach(([tense, numbersObj]) => {
-
                     // Non-finite forms don't have tense, number, or person, so they are rendered in a single table
 
                     if (nonFinite) {
+                        if (tense && mood !== "imperative") return;
 
-                        if (tense && mood !== 'imperative') return;
-
-                        Object.entries(numbersObj).forEach(([_, personsObj]) => {
-                            Object.entries(personsObj).forEach(([_, formsArr]) => {
-                                formsArr.forEach(f => {
-
+                        Object.entries(numbersObj).forEach(([, personsObj]) => {
+                            Object.entries(personsObj).forEach(([, formsArr]) => {
+                                formsArr.forEach((f) => {
                                     const row: string = `| ${f.tags.join(", ")} | ${f.word} |\n`;
 
                                     if (!rows.includes(row)) {
@@ -253,18 +310,15 @@ class Dictionary {
                         });
 
                         rows.length = 0;
-
                     } else {
+                        if (!tense && mood !== "imperative") return;
 
-                        if (!tense && mood !== 'imperative') return;
-
-                        md += `##### Tense: ${tense || mood === 'imperative' ? "present" : ""}\n`;
+                        md += `##### Tense: ${tense || mood === "imperative" ? "present" : ""}\n`;
                         md += `| Person & Number | Form |\n|---|---|\n`;
 
                         Object.entries(numbersObj).forEach(([number, personsObj]) => {
                             Object.entries(personsObj).forEach(([person, formsArr]) => {
-                                formsArr.forEach(f => {
-
+                                formsArr.forEach((f) => {
                                     const row: string = `| ${person} ${number} | ${f.word} |\n`;
 
                                     if (!rows.includes(row)) {
@@ -281,10 +335,9 @@ class Dictionary {
 
                 md += `\n`;
             });
-
         } else {
-            entry.forms.forEach(f => {
-                if (!f.tags.some(tag => invalidTags.includes(tag))) {
+            entry.forms.forEach((f) => {
+                if (!f.tags.some((tag) => invalidTags.includes(tag))) {
                     md += `- ${f.word} (${f.tags.join(", ")})\n`;
                 }
             });
@@ -295,17 +348,25 @@ class Dictionary {
         return md;
     }
 
+    /**
+     * Renders a sense and its subsenses into a formatted Markdown string.
+     *
+     * This method takes a {@link Sense} object and recursively formats its definition,
+     * examples, quotes, synonyms, antonyms, and any nested subsenses into a readable
+     * Markdown structure. Subsenses are indented and numbered for clarity.
+     *
+     * @param sense The {@link Sense} object to render.
+     * @returns {string} A Markdown-formatted string representing the sense and its subsenses.
+     */
     private renderSenses(sense: Sense): string {
         if (!sense) return "";
 
         let md = "";
 
         const renderSubsenses = (subsenses: Sense[], indent: number = 1): string => {
-            
             let subMd = "";
 
             subsenses.forEach((s, idx, arr) => {
-                
                 const prefix = "    ".repeat(indent);
 
                 subMd += `${prefix}${idx + 1}. ${s.definition}\n`;

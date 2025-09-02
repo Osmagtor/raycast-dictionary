@@ -1,11 +1,14 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "dictionary-for-windows",
-  "title": "Dictionary for Windows",
-  "description": "A simple extension to look up words",
+  "name": "simple-dictionary",
+  "title": "Simple Dictionary",
+  "description": "A simple dictionary to look up words and save your favourites",
   "icon": "extension-icon.png",
   "author": "CT-7567",
   "license": "MIT",
+  "categories": [
+    "Productivity"
+  ],
   "commands": [
     {
       "name": "list",
