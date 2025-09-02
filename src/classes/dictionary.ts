@@ -10,27 +10,30 @@ interface Sense {
     antonyms: string[];
     translations: string[];
     subsenses: Sense[];
+    markdown?: string;
 }
 
-interface DictionaryEntry {
+interface Entry {
+    language: {
+        code: string;
+        name: string;
+    },
+    partOfSpeech: string;
+    pronunciations: {
+        type: string;
+        text: string;
+        tags: string[];
+    }[];
+    forms: {
+        word: string;
+        tags: string[];
+    }[];
+    senses: Sense[];
+}
+
+interface DictionaryResponse {
     word: string;
-    entries: {
-        language: {
-            code: string;
-            name: string;
-        },
-        partOfSpeech: string;
-        pronunciations: {
-            type: string;
-            text: string;
-            tags: string[];
-        }[];
-        forms: {
-            word: string;
-            tags: string[];
-        }[];
-        senses: Sense[];
-    }[],
+    entries: Entry[];
     source: {
         url: string;
         license: {
@@ -38,6 +41,10 @@ interface DictionaryEntry {
             url: string;
         }
     }
+}
+
+interface GroupedEntry {
+    [partOfSpeech: string]: Entry;
 }
 
 class Dictionary {
@@ -55,84 +62,80 @@ class Dictionary {
         this.word = word;
     }
 
-    /**
-     * Fetches a dictionary entry for the current word and language from the API.
-     * On success, parses the response as a `DictionaryEntry` and updates the markdown
-     * representation using `renderMarkdown`. If no definitions are found or an error occurs,
-     * sets the markdown to a message indicating no definitions were found.
-     * 
-     * @return {Promise<string>} A promise that resolves to the markdown representation of the dictionary entry.
-     */
-    public async fetchEntry(): Promise<string> {
+    public async fetchEntry(): Promise<GroupedEntry> {
 
-        let md: string;
         const res: Response = await fetch(`${this.url}/${this.language}/${this.word}`);
 
         if (res.ok) {
-            const entry: DictionaryEntry = await res.json() as DictionaryEntry;
-            md = this.renderMarkdown(entry);
-        } else {
-            md = `**No definitions found for ${this.word}**`;
-        }
+            const entry: DictionaryResponse = await res.json() as DictionaryResponse;
 
-        return md;
+            this.word = entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1).toLowerCase();
+            this.urlWord = entry.source.url.replaceAll(' ', '%20');
+
+            return this.groupEntries(entry);
+        } else {
+            return {};
+        }
     }
 
-    /**
-     * Generates a Markdown-formatted string representing the details of a dictionary entry.
-     *
-     * @param {DictionaryEntry} entry The dictionary entry to render as Markdown.
-     * @returns {string} A Markdown string representing the entry.
-     */
-    private renderMarkdown(entry: DictionaryEntry): string {
+    private groupEntries(entry: DictionaryResponse): GroupedEntry {
 
-        let md = '';
+        const groupedEntries: GroupedEntry = {};
 
-        // Title and Source
+        let title: string = '';
+        let pronunciations: string = '';
+        let forms: string = '';
 
-        md += `# ${entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1)}\n`;
+        // Group senses by parts of speech
 
-        this.urlWord = entry.source.url.replaceAll(' ', '%20');
+        entry.entries.forEach((e: Entry) => {
 
-        md += `Source: [${this.urlWord}](${this.urlWord})\n\n`;
+            if (!groupedEntries[e.partOfSpeech]) {
 
-        // Parts of Speech
+                // Initialize the part of speech entry
 
-        // Group entries by part of speech
+                groupedEntries[e.partOfSpeech] = { language: e.language, partOfSpeech: e.partOfSpeech, pronunciations: [], forms: [], senses: [] };
 
-        const groupedEntries: Record<string, { language: { code: string; name: string }; partOfSpeech: string; pronunciations: { type: string; text: string; tags: string[] }[]; forms: { word: string; tags: string[] }[]; senses: Sense[] }> = {};
+                // Parts of Speech
 
-        entry.entries.forEach((e) => {
-            if (!groupedEntries[e.partOfSpeech]) groupedEntries[e.partOfSpeech] = { language: e.language, partOfSpeech: e.partOfSpeech, pronunciations: [], forms: [], senses: [] };
+                title = `# ${this.word} (_${e.partOfSpeech}_)\n<sub>Source: [${this.urlWord}](${this.urlWord})</sub>\n\n`;
+
+                // Pronunciations
+
+                pronunciations = this.renderPronunciations(e);
+                forms = this.renderForms(e);
+            }
+
             groupedEntries[e.partOfSpeech].pronunciations.push(...e.pronunciations);
             groupedEntries[e.partOfSpeech].forms.push(...e.forms);
-            groupedEntries[e.partOfSpeech].senses.push(...e.senses);
+            e.senses.forEach((sense: Sense) => {
+                const senseWithMarkdown = {
+                    ...sense,
+                    markdown:
+                        (
+                            title +
+                            this.renderSenses(sense) +
+                            pronunciations +
+                            forms
+                        ).replaceAll('..', '.')
+                };
+                groupedEntries[e.partOfSpeech].senses.push(senseWithMarkdown);
+            });
         });
 
-        Object.values(groupedEntries).forEach((e) => {
-            md += `## ${e.partOfSpeech.slice(0, 1).toUpperCase() + e.partOfSpeech.slice(1)}\n`;
-            md += this.renderPronunciations(e.pronunciations);
-            md += this.renderSenses(e.senses);
-            md += this.renderForms(e.forms);
-        });
-
-        return md.replaceAll("..", ".");
+        return groupedEntries
     }
 
-    /**
-     * Generates a Markdown table representing pronunciations grouped by region and phonetic system.
-     *
-     * @param {Array<{ type: string; text: string; tags: string[] }>} pronunciations An array of pronunciation objects, each containing a type, text, and tags indicating regions.
-     * @returns {string} A Markdown string containing a table of pronunciations grouped by region and phonetic system, or an empty string if no pronunciations are provided.
-     */
-    private renderPronunciations(pronunciations: { type: string; text: string; tags: string[] }[]): string {
+    private renderPronunciations(entry: Entry): string {
 
-        if (!pronunciations || !pronunciations.length) return "";
+        if (!entry.pronunciations || !entry.pronunciations.length) return "";
+
+        let md = `### Pronunciations\n`;
 
         // Group pronunciations by region (tags) and type
 
         const grouped: Record<string, { type: string, text: string[] }> = {};
-        pronunciations.forEach(p => {
+        entry.pronunciations.forEach(p => {
             if (p.tags.length) {
                 p.tags.forEach((tag: string) => {
                     if (!grouped[tag]) grouped[tag] = { type: p.type, text: [] };
@@ -148,7 +151,7 @@ class Dictionary {
 
         // Render table of pronunciations
 
-        let md = `| Dialect | Pronunciation | Phonetic System | \n|---|---|---|\n`;
+        md += `| Dialect | Pronunciation | Phonetic System | \n|---|---|---|\n`;
 
         Object.entries(grouped).forEach(([region, group]) => {
             md += `| ${region} | ${group.text.join(", ")} | ${group.type} |\n`;
@@ -159,20 +162,9 @@ class Dictionary {
         return md;
     }
 
-    /**
-     * Renders the grammatical forms of a word as a Markdown string.
-     *
-     * For languages with complex conjugation systems, forms are grouped and displayed in tables by mood, tense, number, and person.
-     * For other languages, forms are listed as bullet points.
-     *
-     * Invalid forms (those containing certain tags or keywords) are skipped.
-     *
-     * @param {Array<{ word: string; tags: string[] }>} forms An array of objects representing word forms, each with a `word` and an array of `tags` describing grammatical features.
-     * @returns {string} A Markdown-formatted string representing the forms.
-     */
-    private renderForms(forms: { word: string; tags: string[] }[]): string {
+    private renderForms(entry: Entry): string {
 
-        if (!forms || !forms.length) return "";
+        if (!entry.forms || !entry.forms.length) return "";
 
         let md = `### Forms\n`;
 
@@ -192,7 +184,7 @@ class Dictionary {
 
             const grouped: Record<string, Record<string, Record<string, Record<string, { word: string; tags: string[] }[]>>>> = {};
 
-            forms.forEach(f => {
+            entry.forms.forEach(f => {
 
                 // If the form has no tags, skip it
 
@@ -291,7 +283,7 @@ class Dictionary {
             });
 
         } else {
-            forms.forEach(f => {
+            entry.forms.forEach(f => {
                 if (!f.tags.some(tag => invalidTags.includes(tag))) {
                     md += `- ${f.word} (${f.tags.join(", ")})\n`;
                 }
@@ -303,63 +295,66 @@ class Dictionary {
         return md;
     }
 
-    /**
-     * Generates a Markdown-formatted string representing the senses of a word.
-     *
-     * @param {Sense[]} senses An array of `Sense` objects, each representing a sense of the word.
-     * @returns {string} A Markdown string containing the definitions, examples, quotes, synonyms, and antonyms for each sense.
-     */
-    private renderSenses(senses: Sense[]): string {
+    private renderSenses(sense: Sense): string {
+        if (!sense) return "";
 
-        if (!senses || !senses.length) return "";
-
-        let md = `### Senses\n`;
+        let md = "";
 
         const renderSubsenses = (subsenses: Sense[], indent: number = 1): string => {
-
+            
             let subMd = "";
 
             subsenses.forEach((s, idx, arr) => {
-
+                
                 const prefix = "    ".repeat(indent);
-                subMd += `${prefix}${idx + 1}. ${s.definition}\n`;
 
+                subMd += `${prefix}${idx + 1}. ${s.definition}\n`;
                 if (s.synonyms && s.synonyms.length) subMd += `${prefix}    - **Synonyms:** ${s.synonyms.join(", ")}\n`;
                 if (s.antonyms && s.antonyms.length) subMd += `${prefix}    - **Antonyms:** ${s.antonyms.join(", ")}\n`;
-                if (s.examples && s.examples.length) subMd += `${prefix}    - **Examples:** ${s.examples.join("; ")}\n`;
+                if (s.examples && s.examples.length) {
+                    s.examples.forEach((ex: string, i: number) => {
+                        subMd += `${prefix}    - **Example ${i + 1}:** ${ex}\n`;
+                    });
+                }
                 if (s.quotes && s.quotes.length) {
-                    s.quotes.forEach((q, i) => {
+                    s.quotes.forEach((q: { text: string; reference: string }, i: number) => {
                         subMd += `${prefix}    - **Quote ${i + 1}:** ${q.text} - _${q.reference}_\n`;
                     });
                 }
                 if (s.subsenses && s.subsenses.length) {
                     subMd += renderSubsenses(s.subsenses, indent + 1);
                 }
-
-                if (idx + 1 === arr.length) subMd += `\n`;
+                if (idx + 1 === arr.length) subMd += "\n";
             });
 
             return subMd;
         };
 
-        senses.forEach((t, j, arr) => {
-            md += `${j + 1}. ${t.definition}\n`;
-            if (t.examples && t.examples.length) md += `    - **Examples:** ${t.examples.join("; ")}\n`;
-            if (t.quotes && t.quotes.length) {
-                t.quotes.forEach((q, i) => {
-                    md += `    - **Quote ${i + 1}:** ${q.text} - _${q.reference}_\n`;
-                });
-            }
-            if (t.synonyms && t.synonyms.length) md += `    - **Synonyms:** ${t.synonyms.join(", ")}\n`;
-            if (t.antonyms && t.antonyms.length) md += `    - **Antonyms:** ${t.antonyms.join(", ")}\n`;
-            if (t.subsenses && t.subsenses.length) {
-                md += renderSubsenses(t.subsenses, 2);
-            }
-            if (j + 1 === arr.length) md += `\n\n`;
-        });
+        // Main sense
+
+        md += `${sense.definition}\n`;
+
+        if (sense.examples && sense.examples.length) {
+            sense.examples.forEach((ex: string, i: number) => {
+                md += `- **Example ${i + 1}:** ${ex}\n`;
+            });
+        }
+        if (sense.quotes && sense.quotes.length) {
+            sense.quotes.forEach((q: { text: string; reference: string }, i: number) => {
+                md += `- **Quote ${i + 1}:** ${q.text} - _${q.reference}_\n`;
+            });
+        }
+        if (sense.synonyms && sense.synonyms.length) md += `- **Synonyms:** ${sense.synonyms.join(", ")}\n`;
+        if (sense.antonyms && sense.antonyms.length) md += `- **Antonyms:** ${sense.antonyms.join(", ")}\n`;
+        if (sense.subsenses && sense.subsenses.length) {
+            md += renderSubsenses(sense.subsenses, 2);
+        }
+
+        md += "\n\n";
 
         return md;
     }
 }
 
 export default Dictionary;
+export type { GroupedEntry, Sense };

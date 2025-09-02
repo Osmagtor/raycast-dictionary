@@ -3,6 +3,8 @@ import { LocalStorage } from "@raycast/api";
 interface FavoriteEntry {
     language: string;
     word: string;
+    markdown: string;
+    url: string;
 }
 
 class Favorite {
@@ -35,17 +37,19 @@ class Favorite {
      *
      * @param {string} language The language of the word to add.
      * @param {string} word The word to add to favorites.
+     * @param {string} markdown The markdown details associated with the word.
+     * @param {string} url The URL that the word was sourced from.
      *
      * Checks if the combination of language and word already exists in the favorites.
      * If not, formats the language and word, adds them to the favorites, and updates LocalStorage.
      */
-    public static async addEntry(language: string, word: string): Promise<void> {
+    public static async addEntry(language: string, word: string, markdown: string, url: string): Promise<void> {
 
         const favorites: FavoriteEntry[] = await this.getEntries();
         const exists: boolean = favorites.find((fav: FavoriteEntry) => fav.language === language && fav.word === word) ? true : false;
 
         if (!exists) {
-            favorites.push({ language: this.formatText(language), word: this.formatText(word) });
+            favorites.push({ language: this.formatText(language), word: this.formatText(word), markdown, url });
             favorites.sort((a, b) => a.word.localeCompare(b.word));
             LocalStorage.setItem(Favorite.key, JSON.stringify(favorites));
         }

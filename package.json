@@ -25,37 +25,124 @@
           "placeholder": "language",
           "required": true,
           "type": "dropdown",
-            "data": [
-            { "title": "Catalan", "value": "ca" },
-            { "title": "Chinese", "value": "zh" },
-            { "title": "Czech", "value": "cs" },
-            { "title": "Dutch", "value": "nl" },
-            { "title": "English", "value": "en" },
-            { "title": "Esperanto", "value": "eo" },
-            { "title": "Finnish", "value": "fi" },
-            { "title": "French", "value": "fr" },
-            { "title": "Galician", "value": "gl" },
-            { "title": "German", "value": "de" },
-            { "title": "Greek", "value": "el" },
-            { "title": "Hungarian", "value": "hu" },
-            { "title": "Italian", "value": "it" },
-            { "title": "Japanese", "value": "ja" },
-            { "title": "Latin", "value": "la" },
-            { "title": "Latvian", "value": "lv" },
-            { "title": "Macedonian", "value": "mk" },
-            { "title": "Mandarin", "value": "cmn" },
-            { "title": "Norwegian Bokmål", "value": "nb" },
-            { "title": "Norwegian Nynorsk", "value": "nn" },
-            { "title": "Old English", "value": "ang" },
-            { "title": "Polish", "value": "pl" },
-            { "title": "Portuguese", "value": "pt" },
-            { "title": "Romanian", "value": "ro" },
-            { "title": "Russian", "value": "ru" },
-            { "title": "Serbo-Croatian", "value": "sh" },
-            { "title": "Spanish", "value": "es" },
-            { "title": "Swedish", "value": "sv" },
-            { "title": "Translingual", "value": "mul" }
-            ]
+          "data": [
+            {
+              "title": "Catalan",
+              "value": "ca"
+            },
+            {
+              "title": "Chinese",
+              "value": "zh"
+            },
+            {
+              "title": "Czech",
+              "value": "cs"
+            },
+            {
+              "title": "Dutch",
+              "value": "nl"
+            },
+            {
+              "title": "English",
+              "value": "en"
+            },
+            {
+              "title": "Esperanto",
+              "value": "eo"
+            },
+            {
+              "title": "Finnish",
+              "value": "fi"
+            },
+            {
+              "title": "French",
+              "value": "fr"
+            },
+            {
+              "title": "Galician",
+              "value": "gl"
+            },
+            {
+              "title": "German",
+              "value": "de"
+            },
+            {
+              "title": "Greek",
+              "value": "el"
+            },
+            {
+              "title": "Hungarian",
+              "value": "hu"
+            },
+            {
+              "title": "Italian",
+              "value": "it"
+            },
+            {
+              "title": "Japanese",
+              "value": "ja"
+            },
+            {
+              "title": "Latin",
+              "value": "la"
+            },
+            {
+              "title": "Latvian",
+              "value": "lv"
+            },
+            {
+              "title": "Macedonian",
+              "value": "mk"
+            },
+            {
+              "title": "Mandarin",
+              "value": "cmn"
+            },
+            {
+              "title": "Norwegian Bokmål",
+              "value": "nb"
+            },
+            {
+              "title": "Norwegian Nynorsk",
+              "value": "nn"
+            },
+            {
+              "title": "Old English",
+              "value": "ang"
+            },
+            {
+              "title": "Polish",
+              "value": "pl"
+            },
+            {
+              "title": "Portuguese",
+              "value": "pt"
+            },
+            {
+              "title": "Romanian",
+              "value": "ro"
+            },
+            {
+              "title": "Russian",
+              "value": "ru"
+            },
+            {
+              "title": "Serbo-Croatian",
+              "value": "sh"
+            },
+            {
+              "title": "Spanish",
+              "value": "es"
+            },
+            {
+              "title": "Swedish",
+              "value": "sv"
+            },
+            {
+              "title": "Translingual",
+              "value": "mul"
+            }
+          ]
         },
         {
           "name": "word",

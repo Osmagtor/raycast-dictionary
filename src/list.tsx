@@ -1,4 +1,4 @@
-import { List, ActionPanel, Action, Icon, Alert, showToast, confirmAlert, Toast, launchCommand, LaunchType } from "@raycast/api";
+import { List, ActionPanel, Action, Icon, Alert, showToast, confirmAlert, Toast, open } from "@raycast/api";
 import { JSX, useEffect, useState } from "react";
 import Favorite, { FavoriteEntry } from "./classes/favorite";
 
@@ -26,6 +26,7 @@ export default function Command(): JSX.Element {
             onSearchTextChange={setSearchText}
             searchBarPlaceholder="Filter favorites by word..."
             filtering={true}
+            isShowingDetail={true}
         >
             {
                 !favorites.length
@@ -34,40 +35,41 @@ export default function Command(): JSX.Element {
                     )
                     : (
                         Object.entries(
-                            favorites.reduce((acc: { [lang: string]: string[] }, fav: FavoriteEntry) => {
+                            favorites.reduce((acc: { [lang: string]: { word: string, markdown: string, url: string }[] }, fav: FavoriteEntry) => {
                                 if (!acc[fav.language]) acc[fav.language] = [];
-                                acc[fav.language].push(fav.word);
+                                acc[fav.language].push({
+                                    word: fav.word,
+                                    markdown: fav.markdown,
+                                    url: fav.url
+                                });
                                 return acc;
                             }, {})
-                        ).map(([lang, words]: [string, string[]]) => (
+                        ).map(([lang, wordDefinition]: [string, { word: string, markdown: string, url: string }[]]) => (
                             <List.Section
                                 key={lang}
                                 title={lang.toUpperCase()}
                             >
                                 {
-                                    words.filter((word: string) => word.toLowerCase().includes(searchText.toLowerCase()))
-                                        .map((word: string) => (
+                                    wordDefinition.filter((entry) => entry.word.toLowerCase().includes(searchText.toLowerCase()))
+                                        .map((entry) => (
                                             <List.Item
-                                                key={word}
-                                                title={word}
+                                                key={entry.word}
+                                                title={entry.word}
+                                                detail={
+                                                    <List.Item.Detail markdown={
+                                                        entry.markdown || "No details available."
+                                                    }
+                                                    />
+                                                }
                                                 actions={
                                                     <ActionPanel>
                                                         <Action
-                                                            title="View Definition"
-                                                            icon={Icon.Book}
-                                                            onAction={
-                                                                async (): Promise<void> => {
-                                                                    await launchCommand(
-                                                                        {
-                                                                            name: "search",
-                                                                            type: LaunchType.UserInitiated,
-                                                                            arguments: {
-                                                                                word: word,
-                                                                                language: lang
-                                                                            }
-                                                                        });
-                                                                }
-                                                            }
+                                                            title="Open in Browser"
+                                                            icon={Icon.Globe}
+                                                            onAction={(): void => { 
+                                                                const url: string = entry.url;
+                                                                if (url) open(url);
+                                                            }}
                                                         />
                                                         <Action
                                                             title="Remove from Favorites"
@@ -76,13 +78,13 @@ export default function Command(): JSX.Element {
                                                                 async (): Promise<void> => {
                                                                     const options: Alert.Options = {
                                                                         title: "Remove from Favorites",
-                                                                        message: `"${word.slice(0, 1).toUpperCase()}${word.slice(1)}" (${lang.toUpperCase()}) will be removed from your favorites`,
+                                                                        message: `"${entry.word}" (${lang.toUpperCase()}) will be removed from your favorites`,
                                                                         primaryAction: {
                                                                             title: "Delete",
                                                                             style: Alert.ActionStyle.Destructive,
                                                                             onAction: async (): Promise<void> => {
 
-                                                                                await Favorite.removeEntry(lang, word);
+                                                                                await Favorite.removeEntry(lang, entry.word);
 
                                                                                 const favs: FavoriteEntry[] = await Favorite.getEntries();
                                                                                 setFavorites(favs);
@@ -90,7 +92,7 @@ export default function Command(): JSX.Element {
                                                                                 await showToast({
                                                                                     style: Toast.Style.Success,
                                                                                     title: "Removed from Favorites",
-                                                                                    message: `"${word.slice(0, 1).toUpperCase()}${word.slice(1)}" (${lang.toUpperCase()}) has been removed from your favorites`,
+                                                                                    message: `"${entry.word}" (${lang.toUpperCase()}) has been removed from your favorites`,
                                                                                 });
                                                                             },
                                                                         },
