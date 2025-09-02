@@ -34,7 +34,6 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
     useEffect(() => {
         d = new Dictionary(language, word);
         d.fetchEntry().then((ge: GroupedEntry) => {
-            console.log(ge);
             setGroupedEntries(ge);
             setEntryURL(d.getURL);
             setLoading(false);
