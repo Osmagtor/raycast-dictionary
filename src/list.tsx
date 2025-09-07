@@ -47,12 +47,14 @@ export default function Command(): JSX.Element {
             ) : (
                 Object.entries(
                     favorites.reduce(
-                        (acc: { [lang: string]: { word: string; markdown: string; url: string }[] }, fav: FavoriteEntry) => {
+                        (acc: { [lang: string]: { word: string; markdown: string; url: string, partOfSpeech: string, entry: number }[] }, fav: FavoriteEntry) => {
                             if (!acc[fav.language]) acc[fav.language] = [];
                             acc[fav.language].push({
                                 word: fav.word,
                                 markdown: fav.markdown,
                                 url: fav.url,
+                                partOfSpeech: fav.partOfSpeech,
+                                entry: fav.entry
                             });
                             return acc;
                         },
@@ -61,13 +63,13 @@ export default function Command(): JSX.Element {
                 )
                     .filter(([lang]) => selectedLanguage === "All" || lang === selectedLanguage)
                     .sort(([langA], [langB]) => langA.localeCompare(langB))
-                    .map(([lang, wordDefinition]: [string, { word: string; markdown: string; url: string }[]]) => (
+                    .map(([lang, wordDefinition]: [string, { word: string; markdown: string; url: string, partOfSpeech: string, entry: number }[]]) => (
                         <List.Section key={lang} title={lang.slice(0, 1).toUpperCase() + lang.slice(1).toLowerCase()}>
                             {wordDefinition
                                 .filter((entry) => entry.word.toLowerCase().includes(searchText.toLowerCase()))
                                 .map((entry) => (
                                     <List.Item
-                                        key={entry.word}
+                                        key={`${entry.word}-${entry.partOfSpeech}-${entry.entry}`}
                                         title={entry.word.slice(0, 1).toUpperCase() + entry.word.slice(1).toLowerCase()}
                                         detail={<List.Item.Detail markdown={entry.markdown || "No details available."} />}
                                         actions={
@@ -91,7 +93,7 @@ export default function Command(): JSX.Element {
                                                                 title: "Delete",
                                                                 style: Alert.ActionStyle.Destructive,
                                                                 onAction: async (): Promise<void> => {
-                                                                    await Favorite.removeEntry(lang, entry.word);
+                                                                    await Favorite.removeEntry(lang, entry.word, entry.entry, entry.partOfSpeech);
 
                                                                     const favs: FavoriteEntry[] = await Favorite.getEntries();
                                                                     setFavorites(favs);

@@ -5,6 +5,8 @@ interface FavoriteEntry {
     word: string;
     markdown: string;
     url: string;
+    entry: number;
+    partOfSpeech: string;
 }
 
 class Favorite {
@@ -38,18 +40,19 @@ class Favorite {
      * @param {string} word The word to add to favorites.
      * @param {string} markdown The markdown details associated with the word.
      * @param {string} url The URL that the word was sourced from.
+     * @param {number} entry The entry number associated with the word.
      *
      * Checks if the combination of language and word already exists in the favorites.
      * If not, formats the language and word, adds them to the favorites, and updates LocalStorage.
      */
-    public static async addEntry(language: string, word: string, markdown: string, url: string): Promise<void> {
+    public static async addEntry(language: string, word: string, markdown: string, url: string, entry: number, partOfSpeech: string): Promise<void> {
         const favorites: FavoriteEntry[] = await this.getEntries();
-        const exists: boolean = favorites.find((fav: FavoriteEntry) => fav.language === language && fav.word === word)
+        const exists: boolean = favorites.find((fav: FavoriteEntry) => fav.language === language && fav.word === word && fav.entry === entry && fav.partOfSpeech === partOfSpeech)
             ? true
             : false;
 
         if (!exists) {
-            favorites.push({ language: this.formatText(language), word: this.formatText(word), markdown, url });
+            favorites.push({ language: this.formatText(language), word: this.formatText(word), markdown, url, entry, partOfSpeech });
             favorites.sort((a, b) => a.word.localeCompare(b.word));
             LocalStorage.setItem(Favorite.key, JSON.stringify(favorites));
         }
@@ -60,10 +63,12 @@ class Favorite {
      *
      * @param {string} language The language of the entry to remove.
      * @param {string} word The word of the entry to remove.
+     * @param {number} entry The entry number of the entry to remove.
+     * @param {string} partOfSpeech The part of speech of the entry to remove.
      */
-    public static async removeEntry(language: string, word: string): Promise<void> {
+    public static async removeEntry(language: string, word: string, entry: number, partOfSpeech: string): Promise<void> {
         const favorites: FavoriteEntry[] = await this.getEntries();
-        const updatedFavorites = favorites.filter((fav: FavoriteEntry) => fav.language.toLowerCase() !== language.toLowerCase() || fav.word.toLowerCase() !== word.toLowerCase());
+        const updatedFavorites = favorites.filter((fav: FavoriteEntry) => fav.language.toLowerCase() !== language.toLowerCase() || fav.word.toLowerCase() !== word.toLowerCase() || fav.entry !== entry || fav.partOfSpeech !== partOfSpeech);
         LocalStorage.setItem(Favorite.key, JSON.stringify(updatedFavorites));
     }
 
@@ -81,11 +86,13 @@ class Favorite {
      *
      * @param {string} language The language of the word to check.
      * @param {string} word The word to check for favorite status.
+     * @param {number} entry The entry number associated with the word.
+     * @param {string} partOfSpeech The part of speech associated with the word.
      * @returns {boolean} Wether the word and language combination is a favorite.
      */
-    public static async exist(language: string, word: string): Promise<boolean> {
+    public static async exist(language: string, word: string, entry: number, partOfSpeech: string): Promise<boolean> {
         const favorites: FavoriteEntry[] = await this.getEntries();
-        return favorites.some((fav: FavoriteEntry) => fav.language === language && fav.word === word);
+        return favorites.some((fav: FavoriteEntry) => fav.language === language && fav.word === word && fav.entry === entry && fav.partOfSpeech === partOfSpeech);
     }
 }
 
