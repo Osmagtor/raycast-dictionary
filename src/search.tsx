@@ -143,7 +143,7 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
                                 },
                               };
                               if (await confirmAlert(options)) {
-                                Favorite.removeEntry(language, word, j, partOfSpeech);
+                                Favorite.removeEntry(languageFull, word, j, partOfSpeech);
                                 setFavorites((prev) => ({ ...prev, [favKey]: false }));
                               }
                             }
@@ -155,7 +155,7 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
                           onAction={(): void => {
                             Clipboard.copy(sense.definition);
                             showHUD(
-                              `The definitions for "${word}" (${language.toUpperCase()}) have been copied to clipboard`,
+                              `The definitions for "${word}" (${languageFull.toUpperCase()}) have been copied to clipboard`,
                             );
                           }}
                         />
