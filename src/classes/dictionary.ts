@@ -48,7 +48,7 @@ interface GroupedEntry {
 }
 
 class Dictionary {
-    
+
     private url: string = "https://freedictionaryapi.com/api/v1/entries";
     private urlWord: string = "";
 
@@ -127,7 +127,7 @@ class Dictionary {
 
                 // Parts of Speech
 
-                title = `# ${this.word} (_${e.partOfSpeech}_)\n### Source: [${this.urlWord}](${this.urlWord})\n### Definition:\n`;
+                title = `# ${this.word} (_${e.partOfSpeech}_)\n### Definition:\n`;
 
                 // Pronunciations
 
@@ -372,25 +372,31 @@ class Dictionary {
         let md = "";
 
         const renderSubsenses = (subsenses: Sense[], indent: number = 1): string => {
+
             let subMd = "";
+            const indentStr = "  ".repeat(indent);
 
             subsenses.forEach((s, idx, arr) => {
-                const prefix = "    ".repeat(indent);
-
-                subMd += `${prefix}${idx + 1}. ${s.definition}\n`;
-                if (s.synonyms && s.synonyms.length) subMd += `${prefix}    - **Synonyms:** ${s.synonyms.join(", ")}\n`;
-                if (s.antonyms && s.antonyms.length) subMd += `${prefix}    - **Antonyms:** ${s.antonyms.join(", ")}\n`;
+                subMd += `${indentStr}${idx + 1}. ${s.definition}\n`;
+                if (s.synonyms && s.synonyms.length)
+                    subMd += `${indentStr}   - **Synonyms:** ${s.synonyms.join(", ")}\n`;
+                if (s.antonyms && s.antonyms.length)
+                    subMd += `${indentStr}   - **Antonyms:** ${s.antonyms.join(", ")}\n`;
                 if (s.examples && s.examples.length) {
-                    if (s.examples.length > 1) s.examples.forEach((ex: string, i: number) => {
-                        subMd += `${prefix}    - **Example ${i + 1}:** "${ex}"\n`;
-                    });
-                    else subMd += `${prefix}    - **Example:** "${s.examples[0]}"\n`;
+                    if (s.examples.length > 1)
+                        s.examples.forEach((ex: string, i: number) => {
+                            subMd += `${indentStr}   - **Example ${i + 1}:** "${ex}"\n`;
+                        });
+                    else
+                        subMd += `${indentStr}   - **Example:** "${s.examples[0]}"\n`;
                 }
                 if (s.quotes && s.quotes.length) {
-                    if (s.quotes.length > 1) s.quotes.forEach((q: { text: string; reference: string }, i: number) => {
-                        subMd += `${prefix}    - **Quote ${i + 1}:**  "${q.text}" - _${q.reference}_\n`;
-                    });
-                    else subMd += `${prefix}    - **Quote:** "${s.quotes[0].text}" - _${s.quotes[0].reference}_\n`;
+                    if (s.quotes.length > 1)
+                        s.quotes.forEach((q: { text: string; reference: string }, i: number) => {
+                            subMd += `${indentStr}   - **Quote ${i + 1}:** "${q.text}" - _${q.reference}_\n`;
+                        });
+                    else
+                        subMd += `${indentStr}   - **Quote:** "${s.quotes[0].text}" - _${s.quotes[0].reference}_\n`;
                 }
                 if (s.subsenses && s.subsenses.length) {
                     subMd += renderSubsenses(s.subsenses, indent + 1);
@@ -401,26 +407,30 @@ class Dictionary {
             return subMd;
         };
 
-        // Main sense
-
         md += `${sense.definition}\n`;
 
         if (sense.examples && sense.examples.length) {
-            if (sense.examples.length > 1) sense.examples.forEach((ex: string, i: number) => {
-                md += `- **Example ${i + 1}:** "${ex}"\n`;
-            });
-            else md += `- **Example:** "${sense.examples[0]}"\n`;
+            if (sense.examples.length > 1)
+                sense.examples.forEach((ex: string, i: number) => {
+                    md += `- **Example ${i + 1}:** "${ex}"\n`;
+                });
+            else
+                md += `- **Example:** "${sense.examples[0]}"\n`;
         }
         if (sense.quotes && sense.quotes.length) {
-            if (sense.quotes.length > 1) sense.quotes.forEach((q: { text: string; reference: string }, i: number) => {
-                md += `- **Quote ${i + 1}:** "${q.text}" - _${q.reference}_\n`;
-            });
-            else md += `- **Quote:** "${sense.quotes[0].text}" - _${sense.quotes[0].reference}_\n`;
+            if (sense.quotes.length > 1)
+                sense.quotes.forEach((q: { text: string; reference: string }, i: number) => {
+                    md += `- **Quote ${i + 1}:** "${q.text}" - _${q.reference}_\n`;
+                });
+            else
+                md += `- **Quote:** "${sense.quotes[0].text}" - _${sense.quotes[0].reference}_\n`;
         }
-        if (sense.synonyms && sense.synonyms.length) md += `- **Synonyms:** ${sense.synonyms.join(", ")}\n`;
-        if (sense.antonyms && sense.antonyms.length) md += `- **Antonyms:** ${sense.antonyms.join(", ")}\n`;
+        if (sense.synonyms && sense.synonyms.length)
+            md += `- **Synonyms:** ${sense.synonyms.join(", ")}\n`;
+        if (sense.antonyms && sense.antonyms.length)
+            md += `- **Antonyms:** ${sense.antonyms.join(", ")}\n`;
         if (sense.subsenses && sense.subsenses.length) {
-            md += renderSubsenses(sense.subsenses, 2);
+            md += renderSubsenses(sense.subsenses, 1);
         }
 
         md += "\n\n";
