@@ -49,7 +49,6 @@ interface GroupedEntry {
 
 class Dictionary {
   private url: string = "https://freedictionaryapi.com/api/v1/entries";
-  // private url: string = "ldasjflasjfaldf";
   private urlWord: string = "";
 
   private language: string = "";

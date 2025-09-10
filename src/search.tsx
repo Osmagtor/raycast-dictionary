@@ -12,12 +12,13 @@ import {
   showHUD,
   List,
   Color,
+  Keyboard,
 } from "@raycast/api";
-import { JSX, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Dictionary, { GroupedEntry, Sense } from "./classes/dictionary";
 import Favorite from "./classes/favorite";
 
-export default function Command(props: LaunchProps<{ arguments: { word: string; language: string } }>): JSX.Element {
+export default function Command(props: LaunchProps<{ arguments: Arguments.Search }>) {
   let d: Dictionary;
 
   const colors: Color[] = [Color.Blue, Color.Green, Color.Magenta, Color.Orange, Color.Purple, Color.Red, Color.Yellow];
@@ -58,9 +59,11 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
       const promises: Promise<void>[] = [];
 
       for (const [partOfSpeech, entry] of Object.entries(groupedEntries)) {
-        entry.senses.forEach(async (_, j: number) => {
-          const exists = await Favorite.exist(languageFull.toLowerCase(), word, j, partOfSpeech);
-          favs[`${partOfSpeech}-${j}`] = exists;
+        entry.senses.forEach((_, j: number) => {
+          const promise = Favorite.exist(languageFull.toLowerCase(), word, j, partOfSpeech).then((exists) => {
+            favs[`${partOfSpeech}-${j}`] = exists;
+          });
+          promises.push(promise);
         });
       }
 
@@ -117,6 +120,8 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
                         <Action
                           title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                           icon={isFavorite ? Icon.StarDisabled : Icon.Star}
+                          style={isFavorite ? Action.Style.Destructive : Action.Style.Regular}
+                          shortcut={isFavorite ? Keyboard.Shortcut.Common.Remove : Keyboard.Shortcut.Common.Pin}
                           onAction={async (): Promise<void> => {
                             if (!isFavorite) {
                               const success: boolean = await Favorite.addEntry(
@@ -180,10 +185,11 @@ export default function Command(props: LaunchProps<{ arguments: { word: string; 
                         <Action
                           title="Copy to Clipboard"
                           icon={Icon.Clipboard}
+                          shortcut={Keyboard.Shortcut.Common.Copy}
                           onAction={(): void => {
                             Clipboard.copy(sense.definition);
                             showHUD(
-                              `The definitions for "${word}" (${languageFull.toUpperCase()}) have been copied to clipboard`,
+                              `The definitions for "${word}" (${language.toUpperCase()}) have been copied to clipboard`,
                             );
                           }}
                         />
